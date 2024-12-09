@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from horarios_onibus_moradia import pre_processamento, prox_horario
-from pratos_bandeco import main_bandeco
+from filtra_texto import main_debug
 
 # Constantes
 saida_moras = "IDA\nSaída da Moradia para o Campus"
@@ -16,13 +16,29 @@ TEXTO_ENTRADA = "Olá! Como vai?\nDigite /ida para saber os próximos 3 horário
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(TEXTO_ENTRADA)
 
-async def bandeco(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    pratos = main_bandeco()
+def detecta_dia_semana():
+    data_atual = datetime.today()
+    dia_da_semana = data_atual.weekday()
     
-    resposta = ''
-    for prato in pratos:
-        resposta += f"\n{prato['titulo']}\nPrato principal: {prato['prato_principal']}\nAcompanhamento: {prato['acompanhamento']}\n\n"
-    await update.message.reply_text(resposta)
+    dias_semana = ['SEGUNDA', 'TERÇA', 'QUARTA', 'QUINTA', 'SEXTA', 'SÁBADO', 'DOMINGO']
+    
+    return dias_semana[dia_da_semana]
+
+async def bandeco(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    
+    nome = "pratos_bandecos.txt"
+    
+    resposta = main_debug(nome, detecta_dia_semana())
+    
+    resp=''
+    for resultado in resposta:
+        resp += resultado
+        await update.message.reply_text(resp)
+    
+    # resposta = ''
+    # for prato in pratos:
+    #     resposta += f"\n{prato['titulo']}\nPrato principal: {prato['prato_principal']}\nAcompanhamento: {prato['acompanhamento']}\n\n"
+    # await update.message.reply_text(resposta)
         
 async def ida(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     # Carregar a planilha
@@ -138,3 +154,10 @@ def main():
 # Executar a função principal
 if __name__ == '__main__':
     main()
+
+'''
+Lista de comandos no telegram:
+start - Iniciar conversa
+ida - Mostrar os horários de IDA da MORADIA até a UNICAMP
+volta - Mostrar os horários de VOLTA da UNICAMP até a MORADIA
+'''
