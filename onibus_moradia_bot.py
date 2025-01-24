@@ -2,27 +2,18 @@ import pandas as pd
 from datetime import datetime, timedelta
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-from horarios_onibus_moradia import pre_processamento, prox_horario
-from filtra_texto import main_debug
+from uteis import main_debug, detecta_dia_semana, separa_planilha, pre_processamento, prox_horario
 
 # Constantes
-saida_moras = "IDA\nSaída da Moradia para o Campus"
-saida_unicamp = "VOLTA\nSaída do Campus para a Moradia"
+SAIDA_MORAS = "IDA\nSaída da Moradia para o Campus"
+SAIDA_UNICAMP = "VOLTA\nSaída do Campus para a Moradia"
 horario_atual = datetime.now().time()
-
+    
 # Função de comando /start no bot
 TEXTO_ENTRADA = "Olá! Como vai?\nDigite /ida para saber os próximos 3 horários para ir da MORAS até a UNICAMP\nDigite /volta para saber os próximos 3 horários para ir da UNICAMP até a MORAS\nOBS: Esses são horário referentes ao dia de HOJE!"
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(TEXTO_ENTRADA)
-
-def detecta_dia_semana():
-    data_atual = datetime.today()
-    dia_da_semana = data_atual.weekday()
-    
-    dias_semana = ['SEGUNDA', 'TERÇA', 'QUARTA', 'QUINTA', 'SEXTA', 'SÁBADO', 'DOMINGO']
-    
-    return dias_semana[dia_da_semana]
 
 async def bandeco(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     
@@ -32,25 +23,17 @@ async def bandeco(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     
     resp=''
     for resultado in resposta:
-        resp += resultado
-        await update.message.reply_text(resp)
-    
-    # resposta = ''
-    # for prato in pratos:
-    #     resposta += f"\n{prato['titulo']}\nPrato principal: {prato['prato_principal']}\nAcompanhamento: {prato['acompanhamento']}\n\n"
-    # await update.message.reply_text(resposta)
+        resp += resultado + '\n\n'
+    await update.message.reply_text(resp)
         
 async def ida(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    # Carregar a planilha
+    
+    # Analise do dia
     data_atual = datetime.today()
     dia_da_semana = data_atual.weekday()
     
-    df = pd.read_excel('HORARIO MORADIA.xlsx')
-    
-    if dia_da_semana == 5:
-        df = pd.read_excel('HORARIO_MORADIA_SABADO.xlsx')
-    elif dia_da_semana == 6:
-        df = pd.read_excel('HORARIO_MORADIA_DOMINGO.xlsx')    
+    # Carregar a planilha
+    df, _ = separa_planilha(dia_da_semana)   
 
     # Pré-processamento dos dados
     df = pre_processamento(df)
@@ -67,36 +50,25 @@ async def ida(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         
         dia_semana_amanha = data_amanha.weekday()
         
-        df = pd.read_excel('HORARIO MORADIA.xlsx')
-        resposta_dia_da_semana = "DIA ÚTIL"
-    
-        if dia_semana_amanha == 5:
-            resposta_dia_da_semana = 'SABADO'
-            df = pd.read_excel('HORARIO_MORADIA_SABADO.xlsx')
-        elif dia_semana_amanha == 6:
-            resposta_dia_da_semana = 'DOMINGO'
-            df = pd.read_excel('HORARIO_MORADIA_DOMINGO.xlsx')
+        df, resposta_dia_da_semana = separa_planilha(dia_semana_amanha)
         
         resposta = f"Nenhum horário dispónivel hoje para a IDA até a UNICAMP. Esses são os primeiros horários de amanhã ({resposta_dia_da_semana}):\n"
         
         df = pre_processamento(df)
         
         for i in range(3):
-            resposta += f"{df.at[i, saida_moras]}\n"
+            resposta += f"{df.at[i, SAIDA_MORAS]}\n"
                 
     await update.message.reply_text(resposta)
 
 async def volta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    # Carregar a planilha
+    
+    # Análise de dia
     data_atual = datetime.today()
     dia_da_semana = data_atual.weekday()
     
-    df = pd.read_excel('HORARIO MORADIA.xlsx')
-    
-    if dia_da_semana == 5:
-        df = pd.read_excel('HORARIO_MORADIA_SABADO.xlsx')
-    elif dia_da_semana == 6:
-        df = pd.read_excel('HORARIO_MORADIA_DOMINGO.xlsx') 
+    # Carregar a planilha
+    df, resposta_dia_da_semana = separa_planilha(dia_da_semana) 
 
     # Pré-processamento dos dados
     df = pre_processamento(df)
@@ -106,28 +78,20 @@ async def volta(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         resposta = "Esses são os 3 próximos horários de ônibus:\n"
         for horario in proximos_3_horarios:
             resposta += f"{horario}\n"
+            
     else: # Esse else precisa de melhora        
         data_amanha = data_atual + timedelta(days=1)
         
         dia_semana_amanha = data_amanha.weekday()
         
-        df = pd.read_excel('HORARIO MORADIA.xlsx')
-        
-        resposta_dia_da_semana = 'DIA ÚTIL'
-    
-        if dia_semana_amanha == 5:
-            resposta_dia_da_semana = 'SABADO'
-            df = pd.read_excel('HORARIO_MORADIA_SABADO.xlsx')
-        elif dia_semana_amanha == 6:
-            resposta_dia_da_semana = 'DOMINGO'
-            df = pd.read_excel('HORARIO_MORADIA_DOMINGO.xlsx')
+        df, resposta_dia_da_semana = separa_planilha(dia_semana_amanha)
         
         df = pre_processamento(df)
         
         resposta = f"Nenhum horário dispónivel hoje para a VOLTA até a MORAS. Esses são os primeiros horários de amanhã ({resposta_dia_da_semana}):\n"
         
         for i in range(3):
-            resposta += f"{df.at[i, saida_unicamp]}\n"
+            resposta += f"{df.at[i, SAIDA_UNICAMP]}\n"
                     
     await update.message.reply_text(resposta)
 
@@ -137,8 +101,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 # Função principal do bot
 def main():
+    
     # Criar o bot do Telegram
-    TOKEN = "7029105684:AAEopPzkphbPcl_RtMIWe3N1pxxuPZ2ap_s" # Substitua pelo token do seu bot
+    TOKEN = "7029105684:AAEopPzkphbPcl_RtMIWe3N1pxxuPZ2ap_s"
     application = Application.builder().token(TOKEN).build()
 
     # Definir handlers para o bot
