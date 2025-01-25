@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 from uteis import main_debug, detecta_dia_semana, separa_planilha, pre_processamento, prox_horario
+import os
 
 # Constantes
 SAIDA_MORAS = "IDA\nSaída da Moradia para o Campus"
@@ -100,11 +101,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     await update.message.reply_text("Digite /ida ou /volta para saber os horários disponíveis.")
 
 # Função principal do bot
-def main():
+def main(token_telegram:str):
     
     # Criar o bot do Telegram
-    TOKEN = "7029105684:AAEopPzkphbPcl_RtMIWe3N1pxxuPZ2ap_s"
-    application = Application.builder().token(TOKEN).build()
+    application = Application.builder().token(token_telegram).build()
 
     # Definir handlers para o bot
     application.add_handler(CommandHandler("start", start))
@@ -118,7 +118,8 @@ def main():
 
 # Executar a função principal
 if __name__ == '__main__':
-    main()
+    token_telegram = os.getenv("token_telegram")
+    main(token_telegram)
 
 '''
 Lista de comandos no telegram:
