@@ -17,12 +17,11 @@ def configurar_driver(chrome_driver_path: str, chrome_path: str) -> webdriver.Ch
     service = Service(executable_path=chrome_driver_path)
     return webdriver.Chrome(service=service, options=chrome_options)
 
-def obter_pratos(driver, vegano: bool) -> list:
+def obter_pratos(driver, url_extraida:str, vegano: bool) -> list:
     """
     Extrai os pratos do site da Prefeitura Unicamp e retorna como uma lista estruturada.
     """
     
-    url_extraida = 'https://prefeitura.unicamp.br/cardapio/'
     driver.get(url_extraida)
     time.sleep(0)
 
@@ -99,13 +98,10 @@ def obter_pratos(driver, vegano: bool) -> list:
 
     return pratos
 
-def main() -> list:
+def main(chrome_driver_path, chrome_path) -> list:
     """
     Função principal que configura o driver, extrai os pratos e retorna os resultados.
     """
-    # Caminhos do ChromeDriver e do executável do Chrome
-    chrome_driver_path = r"C:/Users/gabri/Documents/google_driver/chromedriver.exe"
-    chrome_path = r"C:/Users/gabri/Documents/google_driver/chrome-win64/chrome.exe"
 
     # Configura o driver
     driver = configurar_driver(chrome_driver_path, chrome_path)
